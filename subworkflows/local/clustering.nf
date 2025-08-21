@@ -55,7 +55,7 @@ workflow CLUSTERING {
         }
 
     // Join with original assemblies to create clustered channel
-    ch_clustered_assemblies = ch_cluster_assignments
+    ch_clustered_raw = ch_cluster_assignments
         .map { cluster_id, sample_id -> tuple(sample_id, cluster_id) }
         .join(ch_assemblies)
         .map { sample_id, cluster_id, assembly -> tuple(cluster_id, sample_id, assembly) }
@@ -68,7 +68,7 @@ workflow CLUSTERING {
     // Handle singleton clusters based on parameter
     if (params.merge_singletons) {
         // Merge all singletons into one large cluster
-        ch_merged_singletons = ch_clustered_assemblies.singleton
+        ch_merged_singletons = ch_clustered_raw.singleton
             .map { cluster_id, sample_ids, assemblies -> [sample_ids[0], assemblies[0]] }
             .collect()
             .map { singleton_pairs ->
@@ -82,18 +82,21 @@ workflow CLUSTERING {
             .filter { it != null }
 
         // Combine multi-sample clusters with merged singletons
-        ch_clustered_assemblies = ch_clustered_assemblies.multi_sample
+        ch_clustered_final = ch_clustered_raw.multi_sample
             .mix(ch_merged_singletons)
     } else {
         // Log and skip singleton clusters
-        ch_clustered_assemblies.singleton
+        ch_clustered_raw.singleton
             .subscribe { cluster_id, sample_ids, assemblies ->
                 log.info "Skipping singleton cluster ${cluster_id} (sample: ${sample_ids[0]}) - phylogenetic analysis requires multiple samples"
             }
 
         // Process only multi-sample clusters
-        ch_clustered_assemblies = ch_clustered_assemblies.multi_sample
+        ch_clustered_final = ch_clustered_raw.multi_sample
     }
+
+    // Transform to final format
+    ch_clustered_assemblies = ch_clustered_final
         .map { cluster_id, sample_ids, assemblies ->
             def sample_assembly_pairs = [sample_ids, assemblies].transpose()
             tuple(cluster_id, sample_assembly_pairs)
