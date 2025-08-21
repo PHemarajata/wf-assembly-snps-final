@@ -51,10 +51,7 @@ workflow CLUSTERING {
     ch_cluster_assignments = CLUSTER_GENOMES.out.clusters
         .splitCsv(header: true, sep: '\t')
         .map { row -> 
-            // Extract sample ID without extension to match ch_assemblies format
-            // Use the same logic as in the scalable workflow
-            def sample_id = row.sample_id.split('\\.')[0]
-            tuple(row.cluster_id, sample_id)
+            tuple(row.cluster_id, row.sample_id)
         }
 
     // Join with original assemblies to create clustered channel
@@ -111,13 +108,10 @@ workflow CLUSTERING {
         .subscribe { count ->
             if (count == 0) {
                 log.warn "No multi-sample clusters found for phylogenetic analysis."
-                log.warn "This could be due to:"
-                log.warn "  - All samples being singletons (each in its own cluster)"
-                log.warn "  - Sample ID mismatch between clustering and assembly files"
+                log.warn "All samples appear to be singletons (each in its own cluster)."
                 log.warn "Consider:"
                 log.warn "  - Adjusting --mash_threshold (current: ${params.mash_threshold ?: 0.03}) to allow more similar samples to cluster together"
                 log.warn "  - Using --merge_singletons to combine all singletons into one large cluster"
-                log.warn "  - Checking that sample names in clusters.tsv match assembly file names"
                 log.warn "Phylogenetic analysis requires at least 2 samples per cluster."
             } else {
                 log.info "Found ${count} clusters for phylogenetic analysis"
