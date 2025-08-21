@@ -88,22 +88,22 @@ def main():
     final_clusters = {}
     cluster_counter = 0
     
-    for cluster_id, cluster_samples in clusters.items():
-        if len(cluster_samples) <= args.max_cluster_size:
-            final_clusters[cluster_counter] = cluster_samples
+    for cluster_id, samples_in_cluster in clusters.items():
+        if len(samples_in_cluster) <= args.max_cluster_size:
+            final_clusters[cluster_counter] = samples_in_cluster
             cluster_counter += 1
         else:
             # Split large clusters into smaller chunks
             chunk_size = args.max_cluster_size
-            for i in range(0, len(cluster_samples), chunk_size):
-                chunk = cluster_samples[i:i + chunk_size]
+            for i in range(0, len(samples_in_cluster), chunk_size):
+                chunk = samples_in_cluster[i:i + chunk_size]
                 final_clusters[cluster_counter] = chunk
                 cluster_counter += 1
     
     # Write results
     print(f"Found {len(final_clusters)} clusters")
-    for cluster_id, cluster_samples in final_clusters.items():
-        print(f"  Cluster {cluster_id}: {len(cluster_samples)} samples")
+    for cluster_id, samples_in_cluster in final_clusters.items():
+        print(f"  Cluster {cluster_id}: {len(samples_in_cluster)} samples")
     
     write_clusters(final_clusters, args.output_file)
     print(f"Cluster assignments written to {args.output_file}")

@@ -139,6 +139,24 @@ nextflow run \
   --show_hidden_params
 ```
 
+### Clustering parameters (scalable mode)
+
+When using `--scalable_mode`, the following parameters control the clustering behavior:
+
+```console
+  --mash_threshold        Distance threshold for clustering samples (default: 0.03)
+                         Lower values create more clusters with more similar samples
+                         Higher values create fewer clusters with more diverse samples
+
+  --max_cluster_size      Maximum number of samples per cluster (default: 100)
+                         Large clusters are automatically split into smaller ones
+
+  --merge_singletons      Merge all singleton clusters into one large cluster (default: false)
+                         Use this when most samples are singletons but you still want phylogenetic analysis
+```
+
+**Note:** Phylogenetic analysis requires at least 2 samples per cluster. If all samples end up in singleton clusters (each sample in its own cluster), consider adjusting `--mash_threshold` to a higher value or using `--merge_singletons`.
+
 ## Resource Managers
 
 The most well-tested and supported is a Univa Grid Engine (UGE) job scheduler with Singularity for dependency handling.
