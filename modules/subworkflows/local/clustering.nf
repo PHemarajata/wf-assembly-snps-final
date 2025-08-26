@@ -73,14 +73,15 @@ workflow CLUSTERING {
         // Merge all singletons into one large cluster
         ch_merged_singletons = ch_clustered_raw.singleton
             .map { cluster_id, sample_ids, assemblies -> 
-                // Create pairs of [sample_id, assembly_file]
-                [sample_ids, assemblies].transpose()
+                // Extract the single sample and assembly from each singleton
+                tuple(sample_ids[0], assemblies[0])
             }
             .collect()
-            .map { singleton_lists ->
-                def all_pairs = singleton_lists.flatten().collate(2)
-                if (all_pairs.size() > 1) {
-                    tuple("merged_singletons", all_pairs)
+            .map { singleton_pairs ->
+                if (singleton_pairs.size() > 1) {
+                    def merged_sample_ids = singleton_pairs.collect { it[0] }
+                    def merged_assemblies = singleton_pairs.collect { it[1] }
+                    tuple("merged_singletons", merged_sample_ids, merged_assemblies)
                 } else {
                     // If only one singleton, skip it
                     null
@@ -102,11 +103,10 @@ workflow CLUSTERING {
         ch_clustered_final = ch_clustered_raw.multi_sample
     }
 
-    // Transform to final format
+    // Transform to final format - keep sample_ids and assemblies separate for SKA_BUILD
     ch_clustered_assemblies = ch_clustered_final
         .map { cluster_id, sample_ids, assemblies ->
-            def sample_assembly_pairs = [sample_ids, assemblies].transpose()
-            tuple(cluster_id, sample_assembly_pairs)
+            tuple(cluster_id, sample_ids, assemblies)
         }
 
     // Count clusters for summary
@@ -132,5 +132,5 @@ workflow CLUSTERING {
     versions             = ch_versions
     clusters             = CLUSTER_GENOMES.out.clusters
     cluster_summary      = CLUSTER_GENOMES.out.summary
-    clustered_assemblies = ch_clustered_assemblies // channel: [ val(cluster_id), [ [sample_id, assembly], ... ] ]
+    clustered_assemblies = ch_clustered_assemblies // channel: [ val(cluster_id), val(sample_ids), path(assemblies) ]
 }

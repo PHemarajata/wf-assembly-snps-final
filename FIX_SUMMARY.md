@@ -1,56 +1,62 @@
-# SKA_BUILD Error Fix Summary
+# SKA_BUILD Channel Format Error Fix
 
 ## Problem
-The SKA_BUILD process was failing with error 101 because it was trying to access assembly files using absolute paths from other Nextflow work directories. These paths were not accessible within the container running the SKA_BUILD process.
-
-## Root Cause
-The issue was in how the clustering workflow was passing data to SKA_BUILD:
-1. Assembly file paths were being passed as strings instead of actual file objects
-2. SKA_BUILD was trying to access files using absolute paths that don't exist in its container
-3. The input format was `tuple val(cluster_id), val(sample_list)` where sample_list contained string paths
-
-## Solution
-### 1. Updated SKA_BUILD module input format
-Changed from:
-```nextflow
-input:
-tuple val(cluster_id), val(sample_list)
+The pipeline was failing with the error:
+```
+Input tuple does not match tuple declaration in process `ASSEMBLY_SNPS_SCALABLE:CLUSTERED_SNP_TREE:SKA_BUILD` -- offending value: [cluster_3, [[sample_id, path], [sample_id, path], ...]]
 ```
 
-To:
+And "Path value cannot be null" errors.
+
+## Root Cause
+The issue was a mismatch between the channel format expected by SKA_BUILD and what was being provided:
+
+**SKA_BUILD expected:**
 ```nextflow
-input:
 tuple val(cluster_id), val(sample_ids), path(assemblies)
 ```
 
-### 2. Updated input file creation
-Changed the script to use local file names instead of absolute paths:
+**But was receiving:**
 ```nextflow
-def input_content = [sample_ids, assemblies].transpose().collect{ sample_id, assembly -> 
-    "${sample_id}\t${assembly}" 
-}.join('\n')
+[cluster_id, [[sample_id, assembly_path], [sample_id, assembly_path], ...]]
 ```
 
-### 3. Updated clustered_snp_tree workflow
-Added transformation to convert the input channel format:
+The clustering workflow was creating nested arrays instead of separate lists of sample_ids and assemblies.
+
+## Solution
+
+### 1. Fixed clustering.nf channel transformation
+**Before:**
 ```nextflow
-ch_ska_input = ch_clustered_assemblies
-    .map { cluster_id, sample_assembly_pairs ->
-        def sample_ids = sample_assembly_pairs.collect { it[0] }
-        def assemblies = sample_assembly_pairs.collect { it[1] }
+ch_clustered_assemblies = ch_clustered_final
+    .map { cluster_id, sample_ids, assemblies ->
+        def sample_assembly_pairs = [sample_ids, assemblies].transpose()
+        tuple(cluster_id, sample_assembly_pairs)
+    }
+```
+
+**After:**
+```nextflow
+ch_clustered_assemblies = ch_clustered_final
+    .map { cluster_id, sample_ids, assemblies ->
         tuple(cluster_id, sample_ids, assemblies)
     }
 ```
 
-### 4. Fixed clustering workflow
-- Added explicit `by: 0` parameter to join operation
-- Fixed singleton merging to preserve file objects
+### 2. Fixed singleton merging logic
+Updated the singleton merging to maintain the correct format with separate sample_ids and assemblies lists.
+
+### 3. Simplified clustered_snp_tree.nf
+Removed the unnecessary channel transformation since the input is now already in the correct format.
 
 ## Files Modified
-1. `modules/local/ska_build/main.nf`
-2. `modules/modules/local/ska_build/main.nf` (duplicate)
-3. `modules/subworkflows/local/clustered_snp_tree.nf`
-4. `modules/subworkflows/local/clustering.nf`
+1. `modules/subworkflows/local/clustering.nf`
+2. `modules/subworkflows/local/clustered_snp_tree.nf`
 
 ## Result
-Now SKA_BUILD will receive actual assembly files as input parameters, allowing it to access them locally within its container, rather than trying to access files via absolute paths from other work directories.
+The channel now passes data in the format that SKA_BUILD expects:
+- `cluster_id` as a value
+- `sample_ids` as a list of sample identifiers  
+- `assemblies` as a list of file paths
+
+This should resolve both the "Input tuple does not match" error and the "Path value cannot be null" errors.

@@ -25,22 +25,15 @@ include { GUBBINS_CLUSTER  } from "../../modules/local/gubbins_cluster/main"
 workflow CLUSTERED_SNP_TREE {
 
     take:
-    ch_clustered_assemblies // channel: [ val(cluster_id), [ [sample_id, assembly], ... ] ]
+    ch_clustered_assemblies // channel: [ val(cluster_id), val(sample_ids), path(assemblies) ]
 
     main:
     ch_versions = Channel.empty()
 
     // PROCESS: Build SKA files for each cluster
-    // Transform input to match SKA_BUILD requirements: [cluster_id, sample_ids, assemblies]
-    ch_ska_input = ch_clustered_assemblies
-        .map { cluster_id, sample_assembly_pairs ->
-            def sample_ids = sample_assembly_pairs.collect { it[0] }
-            def assemblies = sample_assembly_pairs.collect { it[1] }
-            tuple(cluster_id, sample_ids, assemblies)
-        }
-    
+    // Input is already in the correct format for SKA_BUILD
     SKA_BUILD (
-        ch_ska_input
+        ch_clustered_assemblies
     )
     ch_versions = ch_versions.mix(SKA_BUILD.out.versions)
 
