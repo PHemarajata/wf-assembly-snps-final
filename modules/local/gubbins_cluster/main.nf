@@ -33,10 +33,9 @@ process GUBBINS_CLUSTER {
         touch ${cluster_id}.recombination_predictions.gff
         touch ${cluster_id}.node_labelled.final_tree.tre
         
-        cat <<-END_VERSIONS > versions.yml
-        "${task.process}":
-            gubbins: \$(run_gubbins.py --version | sed 's/^/    /')
-        END_VERSIONS
+        # Create versions file for small clusters
+        echo '"${task.process}":' > versions.yml
+        echo '    gubbins: '\$(run_gubbins.py --version | sed 's/^/    /') >> versions.yml
         
         exit 0
     fi

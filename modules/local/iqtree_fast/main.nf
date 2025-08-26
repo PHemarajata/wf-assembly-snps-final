@@ -29,10 +29,9 @@ process IQTREE_FAST {
         touch ${cluster_id}.treefile
         touch ${cluster_id}.iqtree
         
-        cat <<-END_VERSIONS > versions.yml
-        "${task.process}":
-            iqtree: \$(iqtree2 --version 2>&1 | head -n1 | sed 's/^/    /')
-        END_VERSIONS
+        # Create versions file for small clusters
+        echo '"${task.process}":' > versions.yml
+        echo '    iqtree: '\$(iqtree2 --version 2>&1 | head -n1 | sed 's/^/    /') >> versions.yml
         
         exit 0
     fi
