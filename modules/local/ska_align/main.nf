@@ -1,7 +1,7 @@
 process SKA_ALIGN {
     tag "cluster_${cluster_id}"
     label 'process_medium'
-    container "quay.io/biocontainers/ska2:0.3.7--h21ec9f0_0"
+    container "quay.io/biocontainers/ska2:0.3.7--h4349ce8_2"
 
     input:
     tuple val(cluster_id), path(ska_file)
