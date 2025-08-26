@@ -21,6 +21,7 @@ process IQTREE_FAST {
     # Run IQ-TREE with fast mode
     iqtree2 \\
         -s $alignment \\
+        -st DNA \\
         -m $model \\
         --fast \\
         -nt AUTO \\
