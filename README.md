@@ -155,7 +155,7 @@ When using `--scalable_mode`, the following parameters control the clustering be
                          Use this when most samples are singletons but you still want phylogenetic analysis
 ```
 
-**Note:** Phylogenetic analysis requires at least 2 samples per cluster. If all samples end up in singleton clusters (each sample in its own cluster), consider adjusting `--mash_threshold` to a higher value or using `--merge_singletons`.
+**Note:** Phylogenetic analysis requires at least 3 samples per cluster. If all samples end up in singleton clusters or small clusters (2 samples), consider adjusting `--mash_threshold` to a higher value or using `--merge_singletons`.
 
 ## Resource Managers
 

@@ -21,6 +21,26 @@ process GUBBINS_CLUSTER {
     def tree_builder = params.gubbins_tree_builder ?: 'hybrid'
     def min_snps = params.gubbins_min_snps ?: 5
     """
+    # Check if alignment has at least 3 sequences (minimum for phylogenetic analysis)
+    seq_count=\$(grep -c "^>" $alignment)
+    
+    if [ \$seq_count -lt 3 ]; then
+        echo "WARNING: Alignment has only \$seq_count sequences. Gubbins requires at least 3 sequences for phylogenetic analysis."
+        echo "Skipping Gubbins analysis for cluster ${cluster_id}"
+        
+        # Create empty output files to satisfy pipeline expectations
+        touch ${cluster_id}.filtered_polymorphic_sites.fasta
+        touch ${cluster_id}.recombination_predictions.gff
+        touch ${cluster_id}.node_labelled.final_tree.tre
+        
+        cat <<-END_VERSIONS > versions.yml
+        "${task.process}":
+            gubbins: \$(run_gubbins.py --version | sed 's/^/    /')
+        END_VERSIONS
+        
+        exit 0
+    fi
+
     # Run Gubbins with optimized settings for cluster
     run_gubbins.py \\
         --starting-tree $starting_tree \\

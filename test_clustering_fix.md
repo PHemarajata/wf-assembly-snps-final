@@ -4,7 +4,7 @@
 The workflow was completing successfully but not running the downstream phylogenetic processes (SKA_BUILD, SKA_ALIGN, IQTREE_FAST, GUBBINS_CLUSTER).
 
 ## Root Cause
-The issue was that the clustering algorithm was producing only singleton clusters (each sample in its own cluster), and there was no handling for this case. Since phylogenetic analysis requires at least 2 samples, these singleton clusters were being passed to the CLUSTERED_SNP_TREE subworkflow but no processes were running.
+The issue was that the clustering algorithm was producing only singleton clusters (each sample in its own cluster), and there was no handling for this case. Since phylogenetic analysis requires at least 3 samples, these singleton clusters were being passed to the CLUSTERED_SNP_TREE subworkflow but no processes were running.
 
 ## Fixes Applied
 

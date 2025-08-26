@@ -64,43 +64,50 @@ workflow CLUSTERING {
         .map { sample_id, cluster_id, assembly -> tuple(cluster_id, sample_id, assembly) }
         .groupTuple(by: 0)
         .branch { cluster_id, sample_ids, assemblies ->
-            multi_sample: sample_ids.size() > 1
-            singleton: sample_ids.size() == 1
+            phylo_viable: sample_ids.size() >= 3  // At least 3 samples for phylogenetic analysis
+            small_cluster: sample_ids.size() == 2  // Exactly 2 samples - too small for trees
+            singleton: sample_ids.size() == 1      // Single sample clusters
         }
 
-    // Handle singleton clusters based on parameter
+    // Log small clusters that will be skipped
+    ch_clustered_raw.small_cluster
+        .subscribe { cluster_id, sample_ids, assemblies ->
+            log.info "Skipping cluster ${cluster_id} with ${sample_ids.size()} samples (${sample_ids.join(', ')}) - phylogenetic analysis requires at least 3 samples"
+        }
+
+    ch_clustered_raw.singleton
+        .subscribe { cluster_id, sample_ids, assemblies ->
+            log.info "Skipping singleton cluster ${cluster_id} (sample: ${sample_ids[0]}) - phylogenetic analysis requires at least 3 samples"
+        }
+
+    // Handle small clusters and singletons based on parameter
     if (params.merge_singletons) {
-        // Merge all singletons into one large cluster
-        ch_merged_singletons = ch_clustered_raw.singleton
+        // Merge all small clusters (singletons + 2-sample clusters) into one large cluster
+        ch_small_clusters_combined = ch_clustered_raw.singleton
+            .mix(ch_clustered_raw.small_cluster)
             .map { cluster_id, sample_ids, assemblies -> 
-                // Extract the single sample and assembly from each singleton
-                tuple(sample_ids[0], assemblies[0])
+                // Flatten the lists in case of 2-sample clusters
+                [sample_ids, assemblies].transpose()
             }
             .collect()
-            .map { singleton_pairs ->
-                if (singleton_pairs.size() > 1) {
-                    def merged_sample_ids = singleton_pairs.collect { it[0] }
-                    def merged_assemblies = singleton_pairs.collect { it[1] }
-                    tuple("merged_singletons", merged_sample_ids, merged_assemblies)
+            .map { all_pairs ->
+                if (all_pairs.size() >= 3) {
+                    def merged_sample_ids = all_pairs.collect { it[0] }
+                    def merged_assemblies = all_pairs.collect { it[1] }
+                    tuple("merged_small_clusters", merged_sample_ids, merged_assemblies)
                 } else {
-                    // If only one singleton, skip it
+                    // If fewer than 3 total samples, skip
                     null
                 }
             }
             .filter { it != null }
 
-        // Combine multi-sample clusters with merged singletons
-        ch_clustered_final = ch_clustered_raw.multi_sample
-            .mix(ch_merged_singletons)
+        // Combine phylogenetically viable clusters with merged small clusters
+        ch_clustered_final = ch_clustered_raw.phylo_viable
+            .mix(ch_small_clusters_combined)
     } else {
-        // Log and skip singleton clusters
-        ch_clustered_raw.singleton
-            .subscribe { cluster_id, sample_ids, assemblies ->
-                log.info "Skipping singleton cluster ${cluster_id} (sample: ${sample_ids[0]}) - phylogenetic analysis requires multiple samples"
-            }
-
-        // Process only multi-sample clusters
-        ch_clustered_final = ch_clustered_raw.multi_sample
+        // Process only phylogenetically viable clusters (3+ samples)
+        ch_clustered_final = ch_clustered_raw.phylo_viable
     }
 
     // Transform to final format - keep sample_ids and assemblies separate for SKA_BUILD
@@ -122,7 +129,7 @@ workflow CLUSTERING {
                 log.warn "  - Adjusting --mash_threshold (current: ${params.mash_threshold ?: 0.03}) to allow more similar samples to cluster together"
                 log.warn "  - Using --merge_singletons to combine all singletons into one large cluster"
                 log.warn "  - Checking that sample names in clusters.tsv match assembly file names"
-                log.warn "Phylogenetic analysis requires at least 2 samples per cluster."
+                log.warn "Phylogenetic analysis requires at least 3 samples per cluster."
             } else {
                 log.info "Found ${count} clusters for phylogenetic analysis"
             }

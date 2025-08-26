@@ -18,6 +18,25 @@ process IQTREE_FAST {
     def args = task.ext.args ?: ''
     def model = params.iqtree_model ?: 'GTR+ASC'
     """
+    # Check if alignment has at least 3 sequences (minimum for tree building)
+    seq_count=\$(grep -c "^>" $alignment)
+    
+    if [ \$seq_count -lt 3 ]; then
+        echo "WARNING: Alignment has only \$seq_count sequences. IQ-TREE requires at least 3 sequences for tree building."
+        echo "Skipping tree construction for cluster ${cluster_id}"
+        
+        # Create empty output files to satisfy pipeline expectations
+        touch ${cluster_id}.treefile
+        touch ${cluster_id}.iqtree
+        
+        cat <<-END_VERSIONS > versions.yml
+        "${task.process}":
+            iqtree: \$(iqtree2 --version 2>&1 | head -n1 | sed 's/^/    /')
+        END_VERSIONS
+        
+        exit 0
+    fi
+
     # Run IQ-TREE with fast mode
     iqtree2 \\
         -s $alignment \\
