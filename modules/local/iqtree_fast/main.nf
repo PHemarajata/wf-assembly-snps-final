@@ -40,7 +40,7 @@ process IQTREE_FAST {
     iqtree2 \\
         -s $alignment \\
         -st DNA \\
-        -m $model \\
+        -m MFP \\
         --fast \\
         -nt AUTO \\
         --prefix ${cluster_id} \\
