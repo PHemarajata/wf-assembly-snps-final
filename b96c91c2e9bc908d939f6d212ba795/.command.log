@@ -1,0 +1,9 @@
+Input file contents:
+ERS013364	ERS013364.fasta
+IP-0087-7_S10_L001-SPAdes	IP-0087-7_S10_L001-SPAdes.fasta
+IP-0103-2_S3_L001-SPAdes	IP-0103-2_S3_L001-SPAdes.fasta
+IP-0134-7_S4_L001-SPAdes	IP-0134-7_S4_L001-SPAdes.fasta
+SKA: Split K-mer Analysis (the alignment-free aligner)
+thread 'main' panicked at src/ska_dict.rs:207:58:
+Invalid path/file: cluster_13_input.tsv
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

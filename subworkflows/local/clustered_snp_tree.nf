@@ -25,7 +25,7 @@ include { GUBBINS_CLUSTER  } from "../../modules/local/gubbins_cluster/main"
 workflow CLUSTERED_SNP_TREE {
 
     take:
-    ch_clustered_assemblies // channel: [ val(cluster_id), [ [sample_id, assembly], ... ] ]
+    ch_clustered_assemblies // channel: [ val(cluster_id), val(sample_ids), path(assemblies) ]
 
     main:
     ch_versions = Channel.empty()

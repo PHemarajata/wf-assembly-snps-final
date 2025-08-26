@@ -1,62 +1,54 @@
-# SKA_BUILD Channel Format Error Fix
+# Fix Summary: SKA_BUILD Input Tuple Mismatch Error
 
 ## Problem
 The pipeline was failing with the error:
 ```
-Input tuple does not match tuple declaration in process `ASSEMBLY_SNPS_SCALABLE:CLUSTERED_SNP_TREE:SKA_BUILD` -- offending value: [cluster_3, [[sample_id, path], [sample_id, path], ...]]
+Input tuple does not match tuple declaration in process 'SKA_BUILD' -- offending value: [cluster_7, [[sample1, path1], [sample2, path2], ...]]
+Path value cannot be null
 ```
 
-And "Path value cannot be null" errors.
-
 ## Root Cause
-The issue was a mismatch between the channel format expected by SKA_BUILD and what was being provided:
+The clustering subworkflow was outputting data in the wrong format for the SKA_BUILD process:
 
-**SKA_BUILD expected:**
-```nextflow
+**Expected by SKA_BUILD:**
+```
 tuple val(cluster_id), val(sample_ids), path(assemblies)
 ```
 
-**But was receiving:**
-```nextflow
-[cluster_id, [[sample_id, assembly_path], [sample_id, assembly_path], ...]]
+**Actually provided by clustering:**
 ```
-
-The clustering workflow was creating nested arrays instead of separate lists of sample_ids and assemblies.
+tuple(cluster_id, [[sample_id, assembly], ...])
+```
 
 ## Solution
+Fixed the data transformation in the clustering subworkflow to output the correct tuple format:
 
-### 1. Fixed clustering.nf channel transformation
-**Before:**
-```nextflow
-ch_clustered_assemblies = ch_clustered_final
-    .map { cluster_id, sample_ids, assemblies ->
-        def sample_assembly_pairs = [sample_ids, assemblies].transpose()
-        tuple(cluster_id, sample_assembly_pairs)
-    }
+### Changes Made:
+
+1. **Fixed tuple format in clustering.nf:**
+   - Changed from: `tuple(cluster_id, sample_assembly_pairs)`
+   - Changed to: `tuple(cluster_id, sample_ids, assemblies)`
+
+2. **Updated singleton handling:**
+   - Fixed merge_singletons logic to properly separate sample_ids and assemblies
+   - Ensured consistent tuple format across all code paths
+
+3. **Improved join operation:**
+   - Added explicit `by: 0` parameter to join operation for clarity
+
+4. **Updated comments:**
+   - Fixed channel format documentation throughout the codebase
+
+### Files Modified:
+- `subworkflows/local/clustering.nf`
+- `subworkflows/local/clustered_snp_tree.nf`
+- All duplicate files in nested modules directories
+
+## Expected Result
+The SKA_BUILD process should now receive properly formatted input tuples and the pipeline should run successfully in scalable mode.
+
+## Testing
+To test the fix, run the pipeline with scalable mode enabled:
+```bash
+nextflow run main.nf -profile docker --scalable_mode true --input <your_input> --outdir results
 ```
-
-**After:**
-```nextflow
-ch_clustered_assemblies = ch_clustered_final
-    .map { cluster_id, sample_ids, assemblies ->
-        tuple(cluster_id, sample_ids, assemblies)
-    }
-```
-
-### 2. Fixed singleton merging logic
-Updated the singleton merging to maintain the correct format with separate sample_ids and assemblies lists.
-
-### 3. Simplified clustered_snp_tree.nf
-Removed the unnecessary channel transformation since the input is now already in the correct format.
-
-## Files Modified
-1. `modules/subworkflows/local/clustering.nf`
-2. `modules/subworkflows/local/clustered_snp_tree.nf`
-
-## Result
-The channel now passes data in the format that SKA_BUILD expects:
-- `cluster_id` as a value
-- `sample_ids` as a list of sample identifiers  
-- `assemblies` as a list of file paths
-
-This should resolve both the "Input tuple does not match" error and the "Path value cannot be null" errors.
