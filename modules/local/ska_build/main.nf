@@ -40,8 +40,8 @@ EOFSKA
     # Build SKA file
     ska build \\
         -o ${cluster_id} \\
-        ${args} \\
-        ${cluster_id}_input.tsv
+        -f ${cluster_id}_input.tsv \\
+        ${args}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
