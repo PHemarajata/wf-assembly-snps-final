@@ -15,9 +15,9 @@ process SKA_BUILD {
 
     script:
     def args = task.ext.args ?: ''
-    // Create input content using local file names
+    // Create input content using staged file names
     def input_content = [sample_ids, assemblies].transpose().collect{ sample_id, assembly -> 
-        "${sample_id}\t${assembly}" 
+        "${sample_id}\t${assembly.name}" 
     }.join('\n')
     """
     # Create input file for SKA
@@ -28,6 +28,14 @@ EOFSKA
     # Verify input file was created correctly
     echo "Input file contents:"
     cat ${cluster_id}_input.tsv
+    
+    # Verify that all files exist
+    echo "Checking file existence:"
+    for file in *.fasta *.fa *.fna *.fas *.fsa; do
+        if [ -f "\$file" ]; then
+            echo "Found: \$file"
+        fi
+    done 2>/dev/null || echo "No FASTA files found with standard extensions"
     
     # Build SKA file
     ska build \\
