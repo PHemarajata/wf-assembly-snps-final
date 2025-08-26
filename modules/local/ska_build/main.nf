@@ -4,7 +4,7 @@ process SKA_BUILD {
     container "quay.io/biocontainers/ska2:0.3.7--h4349ce8_2"
 
     input:
-    tuple val(cluster_id), val(sample_list)
+    tuple val(cluster_id), val(sample_ids), path(assemblies)
 
     output:
     tuple val(cluster_id), path("${cluster_id}.skf"), emit: ska_file
@@ -15,7 +15,10 @@ process SKA_BUILD {
 
     script:
     def args = task.ext.args ?: ''
-    def input_content = sample_list.collect{ "${it[0]}\t${it[1]}" }.join('\n')
+    // Create input content using local file names
+    def input_content = [sample_ids, assemblies].transpose().collect{ sample_id, assembly -> 
+        "${sample_id}\t${assembly}" 
+    }.join('\n')
     """
     # Create input file for SKA
     cat > ${cluster_id}_input.tsv <<'EOFSKA'

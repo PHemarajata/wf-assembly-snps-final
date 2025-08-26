@@ -60,7 +60,7 @@ workflow CLUSTERING {
     // Join with original assemblies to create clustered channel
     ch_clustered_raw = ch_cluster_assignments
         .map { cluster_id, sample_id -> tuple(sample_id, cluster_id) }
-        .join(ch_assemblies)
+        .join(ch_assemblies, by: 0)
         .map { sample_id, cluster_id, assembly -> tuple(cluster_id, sample_id, assembly) }
         .groupTuple(by: 0)
         .branch { cluster_id, sample_ids, assemblies ->
@@ -72,11 +72,15 @@ workflow CLUSTERING {
     if (params.merge_singletons) {
         // Merge all singletons into one large cluster
         ch_merged_singletons = ch_clustered_raw.singleton
-            .map { cluster_id, sample_ids, assemblies -> [sample_ids[0], assemblies[0]] }
+            .map { cluster_id, sample_ids, assemblies -> 
+                // Create pairs of [sample_id, assembly_file]
+                [sample_ids, assemblies].transpose()
+            }
             .collect()
-            .map { singleton_pairs ->
-                if (singleton_pairs.size() > 1) {
-                    tuple("merged_singletons", singleton_pairs)
+            .map { singleton_lists ->
+                def all_pairs = singleton_lists.flatten().collate(2)
+                if (all_pairs.size() > 1) {
+                    tuple("merged_singletons", all_pairs)
                 } else {
                     // If only one singleton, skip it
                     null
