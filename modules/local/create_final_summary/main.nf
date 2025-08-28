@@ -25,7 +25,8 @@ process CREATE_FINAL_SUMMARY {
 
     script:
     """
-    # Install required packages
+    # Install compatible versions of numpy and pandas
+    pip install --upgrade numpy>=1.15.4
     pip install pandas
 
     # Create comprehensive final summary
@@ -35,7 +36,7 @@ import os
 from datetime import datetime
 
 def create_final_summary():
-    \"\"\"Create comprehensive final summary of scalable analysis\"\"\"
+    # Create comprehensive final summary of scalable analysis
     
     # Read input files
     try:
@@ -322,6 +323,8 @@ EOF
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
         python: \$(python --version | sed 's/Python //')
+        pandas: \$(python -c "import pandas; print(pandas.__version__)")
+        numpy: \$(python -c "import numpy; print(numpy.__version__)")
     END_VERSIONS
     """
 }

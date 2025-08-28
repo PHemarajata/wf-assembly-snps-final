@@ -22,20 +22,41 @@ process GRAFT_TREES {
 
     script:
     """
+    # Install compatible versions of numpy and pandas
+    pip install --upgrade numpy>=1.15.4
+    pip install pandas
+
     python3 << 'EOF'
 import os
-import pandas as pd
+try:
+    import pandas as pd
+    pandas_available = True
+except ImportError:
+    pandas_available = False
+    print("Warning: pandas not available, using basic functionality")
+
 from ete3 import Tree, TreeStyle, NodeStyle, faces, AttrFace
 import glob
 from collections import defaultdict
 import sys
 
 def graft_cluster_trees():
-    """Graft cluster trees into a supertree using tree grafting algorithms"""
+    # Graft cluster trees into a supertree using tree grafting algorithms
     
     # Read cluster assignments
-    clusters_df = pd.read_csv("${clusters_file}", sep='\\t')
-    sample_to_cluster = dict(zip(clusters_df['sample_id'], clusters_df['cluster_id']))
+    if pandas_available:
+        clusters_df = pd.read_csv("${clusters_file}", sep='\\t')
+        sample_to_cluster = dict(zip(clusters_df['sample_id'], clusters_df['cluster_id']))
+    else:
+        # Basic file reading without pandas
+        sample_to_cluster = {}
+        with open("${clusters_file}", 'r') as f:
+            lines = f.readlines()
+        for line in lines[1:]:  # Skip header
+            parts = line.strip().split('\\t')
+            if len(parts) >= 2:
+                sample_to_cluster[parts[1]] = parts[0]  # sample_id -> cluster_id
+    
     cluster_to_samples = defaultdict(list)
     for sample, cluster in sample_to_cluster.items():
         cluster_to_samples[cluster].append(sample)
@@ -84,7 +105,12 @@ def graft_cluster_trees():
             f.write("();\\n")
         with open("tree_grafting_report.txt", 'w') as f:
             f.write("No trees available for grafting\\n")
-        pd.DataFrame().to_csv("cluster_tree_summary.tsv", sep='\\t', index=False)
+        
+        if pandas_available:
+            pd.DataFrame().to_csv("cluster_tree_summary.tsv", sep='\\t', index=False)
+        else:
+            with open("cluster_tree_summary.tsv", 'w') as f:
+                f.write("cluster_id\\ttree_file\\tnum_leaves\\ttree_length\\tnum_internal_nodes\\n")
         return
     
     # Create supertree using simple grafting approach
@@ -113,8 +139,14 @@ def graft_cluster_trees():
     supertree.write(format=1, outfile="grafted_supertree.tre")
     
     # Create tree summary
-    tree_summary_df = pd.DataFrame(tree_summary_data)
-    tree_summary_df.to_csv("cluster_tree_summary.tsv", sep='\\t', index=False)
+    if pandas_available:
+        tree_summary_df = pd.DataFrame(tree_summary_data)
+        tree_summary_df.to_csv("cluster_tree_summary.tsv", sep='\\t', index=False)
+    else:
+        with open("cluster_tree_summary.tsv", 'w') as f:
+            f.write("cluster_id\\ttree_file\\tnum_leaves\\ttree_length\\tnum_internal_nodes\\n")
+            for data in tree_summary_data:
+                f.write(f"{data['cluster_id']}\\t{data['tree_file']}\\t{data['num_leaves']}\\t{data['tree_length']:.6f}\\t{data['num_internal_nodes']}\\n")
     
     # Create detailed report
     with open("tree_grafting_report.txt", 'w') as f:
@@ -128,12 +160,12 @@ def graft_cluster_trees():
         f.write("Cluster tree statistics:\\n")
         f.write("-" * 30 + "\\n")
         
-        for _, row in tree_summary_df.iterrows():
-            f.write(f"Cluster {row['cluster_id']}:\\n")
-            f.write(f"  - Leaves: {row['num_leaves']}\\n")
-            f.write(f"  - Internal nodes: {row['num_internal_nodes']}\\n")
-            f.write(f"  - Tree length: {row['tree_length']:.6f}\\n")
-            f.write(f"  - Source file: {row['tree_file']}\\n\\n")
+        for data in tree_summary_data:
+            f.write(f"Cluster {data['cluster_id']}:\\n")
+            f.write(f"  - Leaves: {data['num_leaves']}\\n")
+            f.write(f"  - Internal nodes: {data['num_internal_nodes']}\\n")
+            f.write(f"  - Tree length: {data['tree_length']:.6f}\\n")
+            f.write(f"  - Source file: {data['tree_file']}\\n\\n")
         
         f.write("Grafting method: Star topology with cluster subtrees\\n")
         f.write("Note: Each cluster forms a monophyletic group in the supertree\\n")
@@ -180,6 +212,8 @@ EOF
     "${task.process}":
         python: \$(python --version | sed 's/Python //')
         ete3: \$(python -c "import ete3; print(ete3.__version__)")
+        pandas: \$(python -c "try: import pandas; print(pandas.__version__); except: print('not available')")
+        numpy: \$(python -c "try: import numpy; print(numpy.__version__); except: print('not available')")
     END_VERSIONS
     """
 }

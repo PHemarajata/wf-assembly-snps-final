@@ -1,7 +1,7 @@
 process EXTRACT_CORE_SNPS {
     tag "cluster_${cluster_id}"
     label 'process_low'
-    container "quay.io/biocontainers/biopython:1.79--py39hd23ed53_1"
+    container "quay.io/biocontainers/python:3.9--1"
     
     publishDir "${params.outdir}/Core_SNPs", mode: params.publish_dir_mode, pattern: "*.{fa,tsv}"
 
@@ -19,6 +19,10 @@ process EXTRACT_CORE_SNPS {
 
     script:
     """
+    # Install compatible versions of numpy and pandas
+    pip install --upgrade numpy>=1.15.4
+    pip install pandas biopython
+
     python3 << 'EOF'
 import os
 from Bio import SeqIO
@@ -27,7 +31,7 @@ from Bio.SeqRecord import SeqRecord
 import pandas as pd
 
 def extract_core_snps(alignment_file, cluster_id, clusters_file):
-    """Extract core SNP positions from cluster alignment"""
+    # Extract core SNP positions from cluster alignment
     
     # Read cluster assignments to get sample names
     clusters_df = pd.read_csv(clusters_file, sep='\\t')
@@ -97,6 +101,8 @@ EOF
     "${task.process}":
         python: \$(python --version | sed 's/Python //')
         biopython: \$(python -c "import Bio; print(Bio.__version__)")
+        pandas: \$(python -c "import pandas; print(pandas.__version__)")
+        numpy: \$(python -c "import numpy; print(numpy.__version__)")
     END_VERSIONS
     """
 }
