@@ -36,6 +36,7 @@ include { INPUT_CHECK                                      } from "../subworkflo
 include { INPUT_CHECK as REF_INPUT_CHECK                   } from "../subworkflows/local/input_check"
 include { CLUSTERING                                       } from "../subworkflows/local/clustering"
 include { CLUSTERED_SNP_TREE                               } from "../subworkflows/local/clustered_snp_tree"
+include { INTEGRATE_RESULTS                                } from "../subworkflows/local/integrate_results"
 include { USHER_PLACEMENT                                  } from "../subworkflows/local/usher_placement"
 
 /*
@@ -170,20 +171,51 @@ workflow ASSEMBLY_SNPS_SCALABLE {
         )
         ch_versions = ch_versions.mix(CLUSTERED_SNP_TREE.out.versions)
 
-        // Collect cluster results for global analysis
+        // Collect cluster results for integration
         ch_cluster_alignments = CLUSTERED_SNP_TREE.out.alignments
         ch_cluster_trees = CLUSTERED_SNP_TREE.out.trees
 
-        // Create global backbone alignment (simplified approach)
-        ch_global_alignment = ch_cluster_alignments
-            .collect()
-            .map { alignments ->
-                def meta = [id: 'global_backbone']
-                tuple(meta, alignments)
-            }
+        // SUBWORKFLOW: Integrate results across clusters (if enabled)
+        if (params.integrate_results) {
+            log.info "Integrating core SNPs and grafting trees from all clusters"
+            
+            INTEGRATE_RESULTS (
+                ch_cluster_alignments,
+                ch_cluster_trees,
+                CLUSTERING.out.clusters,
+                CLUSTERING.out.cluster_summary
+            )
+            ch_versions = ch_versions.mix(INTEGRATE_RESULTS.out.versions)
+        } else {
+            log.info "Skipping result integration (disabled by --integrate_results false)"
+        }
+
+        // Log integration results (if integration was performed)
+        if (params.integrate_results) {
+            INTEGRATE_RESULTS.out.integrated_alignment
+                .subscribe { alignment ->
+                    log.info "Created integrated core SNPs alignment: ${alignment}"
+                }
+
+            INTEGRATE_RESULTS.out.supertree
+                .subscribe { supertree ->
+                    log.info "Created grafted supertree: ${supertree}"
+                }
+
+            INTEGRATE_RESULTS.out.integrated_tree
+                .subscribe { tree ->
+                    log.info "Built phylogenetic tree from integrated core SNPs: ${tree}"
+                }
+        }
 
         // Optional: Build UShER MAT for incremental updates
-        if (params.build_usher_mat) {
+        if (params.build_usher_mat && params.integrate_results) {
+            ch_global_alignment = INTEGRATE_RESULTS.out.integrated_alignment
+                .map { alignment ->
+                    def meta = [id: 'integrated_global']
+                    tuple(meta, alignment)
+                }
+
             USHER_PLACEMENT (
                 ch_global_alignment,
                 ch_reference,
