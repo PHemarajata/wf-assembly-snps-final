@@ -95,7 +95,9 @@ nextflow run main.nf \
 |-----------|---------|-------------|
 | `run_gubbins` | `true` | Run Gubbins within clusters |
 | `gubbins_iterations` | `3` | Maximum Gubbins iterations (reduced from default 5) |
-| `gubbins_tree_builder` | `"hybrid"` | Tree builder: `fasttree`, `raxml`, or `hybrid` |
+| `gubbins_use_hybrid` | `true` | Enable hybrid tree building approach |
+| `gubbins_first_tree_builder` | `"rapidnj"` | Fast tree builder for initial tree (rapidnj, fasttree) |
+| `gubbins_tree_builder` | `"iqtree"` | Accurate tree builder for refinement (iqtree, raxml) |
 | `gubbins_min_snps` | `5` | Minimum SNPs to call recombination |
 
 ### Tree Building
@@ -181,7 +183,7 @@ Optimized for:
 **For B. pseudomallei (high recombination):**
 - Use cluster-local Gubbins masks (avoid over-aggressive global masking)
 - Reduce Gubbins iterations (3 vs default 5)
-- Use hybrid tree builder (FastTree → RAxML refinement)
+- Use hybrid tree building approach (RapidNJ → IQ-TREE refinement)
 - Set minimum SNP threshold to avoid noise
 
 ## Troubleshooting

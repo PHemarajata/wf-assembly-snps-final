@@ -1,7 +1,7 @@
 process GUBBINS_CLUSTER {
     tag "cluster_${cluster_id}"
     label 'process_high'
-    container "snads/gubbins@sha256:391a980312096f96d976f4be668d4dea7dda13115db004a50e49762accc0ec62"
+    container "quay.io/biocontainers/gubbins:3.3.5--py39pl5321he4a0461_0"
 
     input:
     tuple val(cluster_id), path(alignment), path(starting_tree)
@@ -18,8 +18,10 @@ process GUBBINS_CLUSTER {
     script:
     def args = task.ext.args ?: ''
     def iterations = params.gubbins_iterations ?: 3
-    def tree_builder = params.gubbins_tree_builder ?: 'hybrid'
+    def tree_builder = params.gubbins_tree_builder ?: 'iqtree'
+    def first_tree_builder = params.gubbins_first_tree_builder ?: 'rapidnj'
     def min_snps = params.gubbins_min_snps ?: 5
+    def use_hybrid = params.gubbins_use_hybrid ?: true
     """
     # Check if alignment has at least 3 sequences (minimum for phylogenetic analysis)
     seq_count=\$(grep -c "^>" $alignment)
@@ -40,16 +42,31 @@ process GUBBINS_CLUSTER {
         exit 0
     fi
 
-    # Run Gubbins with optimized settings for cluster
-    run_gubbins.py \\
-        --starting-tree $starting_tree \\
-        --prefix ${cluster_id} \\
-        --tree-builder $tree_builder \\
-        --iterations $iterations \\
-        --min-snps $min_snps \\
-        --threads ${task.cpus} \\
-        $args \\
-        $alignment
+    # Build Gubbins command with hybrid tree builders if enabled
+    if [ "$use_hybrid" = "true" ]; then
+        # Use hybrid approach with two tree builders
+        run_gubbins.py \\
+            --starting-tree $starting_tree \\
+            --prefix ${cluster_id} \\
+            --first-tree-builder $first_tree_builder \\
+            --tree-builder $tree_builder \\
+            --iterations $iterations \\
+            --min-snps $min_snps \\
+            --threads ${task.cpus} \\
+            $args \\
+            $alignment
+    else
+        # Use single tree builder
+        run_gubbins.py \\
+            --starting-tree $starting_tree \\
+            --prefix ${cluster_id} \\
+            --tree-builder $tree_builder \\
+            --iterations $iterations \\
+            --min-snps $min_snps \\
+            --threads ${task.cpus} \\
+            $args \\
+            $alignment
+    fi
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

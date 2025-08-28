@@ -1,0 +1,11 @@
+Unable to find image 'quay.io/biocontainers/gubbins:3.3.5--py39pl5321he4a0461_0' locally
+3.3.5--py39pl5321he4a0461_0: Pulling from biocontainers/gubbins
+ca7680d1025d: Already exists
+bd9ddc54bea9: Already exists
+72309b6ff751: Pulling fs layer
+72309b6ff751: Verifying Checksum
+72309b6ff751: Download complete
+72309b6ff751: Pull complete
+Digest: sha256:f47273659f833f3d865157b07c56adcff7f11674690f1a311c160c1fbd8ba860
+Status: Downloaded newer image for quay.io/biocontainers/gubbins:3.3.5--py39pl5321he4a0461_0
+Initial tree builder is not used if a starting tree is provided

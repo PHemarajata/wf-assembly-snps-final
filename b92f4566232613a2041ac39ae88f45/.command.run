@@ -1,11 +1,11 @@
 #!/bin/bash
 ### ---
-### name: 'ASSEMBLY_SNPS_SCALABLE:CLUSTERED_SNP_TREE:GUBBINS_CLUSTER (cluster_cluster_13)'
-### container: 'snads/gubbins@sha256:391a980312096f96d976f4be668d4dea7dda13115db004a50e49762accc0ec62'
+### name: 'ASSEMBLY_SNPS_SCALABLE:CLUSTERED_SNP_TREE:GUBBINS_CLUSTER (cluster_cluster_22)'
+### container: 'quay.io/biocontainers/gubbins:3.3.5--py39pl5321he4a0461_0'
 ### outputs:
-### - 'cluster_13.filtered_polymorphic_sites.fasta'
-### - 'cluster_13.recombination_predictions.gff'
-### - 'cluster_13.node_labelled.final_tree.tre'
+### - 'cluster_22.filtered_polymorphic_sites.fasta'
+### - 'cluster_22.recombination_predictions.gff'
+### - 'cluster_22.node_labelled.final_tree.tre'
 ### - 'versions.yml'
 ### ...
 set -e
@@ -129,7 +129,7 @@ nxf_write_trace() {
 nxf_trace_mac() {
     local start_millis=$(nxf_date)
 
-    /bin/bash -euo pipefail /home/cdcadmin/Downloads/wf-assembly-snps-final/work/63/fb9a15f86def84ca49a1ba567164bc/.command.sh
+    /bin/bash -euo pipefail /home/cdcadmin/Downloads/wf-assembly-snps-final/work/69/b92f4566232613a2041ac39ae88f45/.command.sh
 
     local end_millis=$(nxf_date)
     local wall_time=$((end_millis-start_millis))
@@ -156,7 +156,7 @@ nxf_trace_linux() {
     local start_millis=$(nxf_date)
     trap 'kill $mem_proc' ERR
     
-    /bin/bash -euo pipefail /home/cdcadmin/Downloads/wf-assembly-snps-final/work/63/fb9a15f86def84ca49a1ba567164bc/.command.sh &
+    /bin/bash -euo pipefail /home/cdcadmin/Downloads/wf-assembly-snps-final/work/69/b92f4566232613a2041ac39ae88f45/.command.sh &
     local task=$!
 
     mem_fd=$(nxf_fd)
@@ -286,7 +286,7 @@ nxf_fs_fcp() {
 
 on_exit() {
     exit_status=${nxf_main_ret:=$?}
-    printf -- $exit_status > /home/cdcadmin/Downloads/wf-assembly-snps-final/work/63/fb9a15f86def84ca49a1ba567164bc/.exitcode
+    printf -- $exit_status > /home/cdcadmin/Downloads/wf-assembly-snps-final/work/69/b92f4566232613a2041ac39ae88f45/.exitcode
     set +u
     docker rm $NXF_BOXID &>/dev/null || true
     exit $exit_status
@@ -298,16 +298,16 @@ on_term() {
 }
 
 nxf_launch() {
-    docker run -i --cpu-shares 16384 --memory 65536m -e "NXF_TASK_WORKDIR" -e "NXF_DEBUG=${NXF_DEBUG:=0}" -v /home/cdcadmin/Downloads/wf-assembly-snps-final:/home/cdcadmin/Downloads/wf-assembly-snps-final -w "$NXF_TASK_WORKDIR" --name $NXF_BOXID snads/gubbins@sha256:391a980312096f96d976f4be668d4dea7dda13115db004a50e49762accc0ec62 /bin/bash -c "eval $(nxf_container_env); /bin/bash /home/cdcadmin/Downloads/wf-assembly-snps-final/work/63/fb9a15f86def84ca49a1ba567164bc/.command.run nxf_trace"
+    docker run -i --cpu-shares 16384 --memory 65536m -e "NXF_TASK_WORKDIR" -e "NXF_DEBUG=${NXF_DEBUG:=0}" -v /home/cdcadmin/Downloads/wf-assembly-snps-final:/home/cdcadmin/Downloads/wf-assembly-snps-final -w "$NXF_TASK_WORKDIR" --name $NXF_BOXID quay.io/biocontainers/gubbins:3.3.5--py39pl5321he4a0461_0 /bin/bash -c "eval $(nxf_container_env); /bin/bash /home/cdcadmin/Downloads/wf-assembly-snps-final/work/69/b92f4566232613a2041ac39ae88f45/.command.run nxf_trace"
 }
 
 nxf_stage() {
     true
     # stage input files
-    rm -f cluster_13.treefile
-    rm -f cluster_13.aln.fa
-    ln -s /home/cdcadmin/Downloads/wf-assembly-snps-final/work/fe/940f5d28cdb87be33c8fac3b05496d/cluster_13.treefile cluster_13.treefile
-    ln -s /home/cdcadmin/Downloads/wf-assembly-snps-final/work/b9/1d85a2265862b42552cea15b95f045/cluster_13.aln.fa cluster_13.aln.fa
+    rm -f cluster_22.aln.fa
+    rm -f cluster_22.treefile
+    ln -s /home/cdcadmin/Downloads/wf-assembly-snps-final/work/d2/68c3006d0ab0812631303229abe349/cluster_22.aln.fa cluster_22.aln.fa
+    ln -s /home/cdcadmin/Downloads/wf-assembly-snps-final/work/2c/bc373aa6bce5927b2e2dc77db79e56/cluster_22.treefile cluster_22.treefile
 }
 
 nxf_unstage() {
@@ -324,7 +324,7 @@ nxf_main() {
     export NXF_BOXID="nxf-$(dd bs=18 count=1 if=/dev/urandom 2>/dev/null | base64 | tr +/ 0A | tr -d '\r\n')"
     NXF_SCRATCH=''
     [[ $NXF_DEBUG > 0 ]] && nxf_env
-    touch /home/cdcadmin/Downloads/wf-assembly-snps-final/work/63/fb9a15f86def84ca49a1ba567164bc/.command.begin
+    touch /home/cdcadmin/Downloads/wf-assembly-snps-final/work/69/b92f4566232613a2041ac39ae88f45/.command.begin
     set +u
     set -u
     [[ $NXF_SCRATCH ]] && cd $NXF_SCRATCH

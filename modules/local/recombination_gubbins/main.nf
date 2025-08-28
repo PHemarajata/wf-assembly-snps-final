@@ -2,7 +2,7 @@ process RECOMBINATION_GUBBINS {
 
     tag { "${meta.snp_package}" }
     label "process_medium"
-    container "snads/gubbins@sha256:391a980312096f96d976f4be668d4dea7dda13115db004a50e49762accc0ec62"
+    container "quay.io/biocontainers/gubbins:3.3.5--py39pl5321he4a0461_0"
 
     input:
     tuple val(meta), path(core_alignment_fasta)
@@ -19,10 +19,23 @@ process RECOMBINATION_GUBBINS {
 
     msg "INFO: Performing recombination using Gubbins."
 
-    run_gubbins.py \
-      --starting-tree "!{meta.snp_package}.tree" \
-      --prefix "!{meta.snp_package}-Gubbins" \
-      "!{core_alignment_fasta}"
+    # Build Gubbins command with hybrid tree builders if enabled
+    if [[ "!{params.gubbins_use_hybrid}" == "true" ]]; then
+        # Use hybrid approach with two tree builders
+        run_gubbins.py \
+          --starting-tree "!{meta.snp_package}.tree" \
+          --prefix "!{meta.snp_package}-Gubbins" \
+          --first-tree-builder "!{params.gubbins_first_tree_builder}" \
+          --tree-builder "!{params.gubbins_tree_builder}" \
+          "!{core_alignment_fasta}"
+    else
+        # Use single tree builder
+        run_gubbins.py \
+          --starting-tree "!{meta.snp_package}.tree" \
+          --prefix "!{meta.snp_package}-Gubbins" \
+          --tree-builder "!{params.gubbins_tree_builder}" \
+          "!{core_alignment_fasta}"
+    fi
 
     # Rename output files
     mv "!{meta.snp_package}-Gubbins.recombination_predictions.gff" \

@@ -161,3 +161,30 @@ After applying these fixes, the pipeline should:
 - The pipeline maintains full backward compatibility with existing parameter sets
 - The unique sample ID generation is deterministic (same file will always get the same ID)
 - The fixes address both the immediate duplicate ID issue and the underlying file collision problems
+
+### 6. Gubbins Version Upgrade and Hybrid Tree Builder Implementation
+**Files:** `modules/local/gubbins_cluster/main.nf`, `modules/local/recombination_gubbins/main.nf`, `conf/params.config`
+
+**Upgrade Details:**
+- **Container upgrade**: Updated from `snads/gubbins@sha256:391a980312096f96d976f4be668d4dea7dda13115db004a50e49762accc0ec62` (Gubbins 3.1.4) to `quay.io/biocontainers/gubbins:3.3.5--py39pl5321he4a0461_0` (Gubbins 3.3.5)
+- **Hybrid tree builder implementation**: Implemented proper hybrid approach using two tree builders:
+  - `--first-tree-builder rapidnj` for fast initial tree construction
+  - `--tree-builder iqtree` for accurate maximum likelihood refinement
+- **New parameters added**:
+  - `gubbins_use_hybrid = true` - Enable/disable hybrid approach
+  - `gubbins_first_tree_builder = "rapidnj"` - Fast tree builder for initial tree
+  - `gubbins_tree_builder = "iqtree"` - Accurate tree builder for refinement
+
+**Benefits:**
+- **Resolved KeyError**: Eliminates the `KeyError: 'hybrid'` error from the older version
+- **Improved accuracy**: IQ-TREE provides more accurate maximum likelihood phylogenetic inference
+- **Speed optimization**: RapidNJ provides fast initial tree construction, followed by IQ-TREE refinement
+- **Flexible configuration**: Users can disable hybrid mode or change tree builders as needed
+- **Better model selection**: IQ-TREE includes advanced model selection capabilities
+
+**Implementation Details:**
+The hybrid approach now properly uses two separate tree builders as intended:
+1. **Initial tree**: RapidNJ creates a fast neighbor-joining tree for starting topology
+2. **Refinement**: IQ-TREE performs maximum likelihood optimization for final accuracy
+
+This matches the intended behavior of Gubbins hybrid mode and resolves the compatibility issues with the older container version.
