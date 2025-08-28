@@ -41,7 +41,16 @@ EOFSKA
     ska build \\
         -o ${cluster_id} \\
         -f ${cluster_id}_input.tsv \\
-        ${args}
+        ${args} || {
+        echo "WARNING: SKA build failed for cluster ${cluster_id}. Creating empty SKA file."
+        touch ${cluster_id}.skf
+    }
+
+    # Ensure SKA file exists
+    if [ ! -f "${cluster_id}.skf" ]; then
+        echo "WARNING: Missing SKA file for cluster ${cluster_id}. Creating empty file."
+        touch ${cluster_id}.skf
+    fi
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

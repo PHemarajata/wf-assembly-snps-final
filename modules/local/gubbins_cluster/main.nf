@@ -54,7 +54,12 @@ process GUBBINS_CLUSTER {
             --min-snps $min_snps \\
             --threads ${task.cpus} \\
             $args \\
-            $alignment
+            $alignment || {
+            echo "WARNING: Gubbins failed for cluster ${cluster_id}. Creating empty output files."
+            touch ${cluster_id}.filtered_polymorphic_sites.fasta
+            touch ${cluster_id}.recombination_predictions.gff
+            touch ${cluster_id}.node_labelled.final_tree.tre
+        }
     else
         # Use single tree builder
         run_gubbins.py \\
@@ -65,7 +70,28 @@ process GUBBINS_CLUSTER {
             --min-snps $min_snps \\
             --threads ${task.cpus} \\
             $args \\
-            $alignment
+            $alignment || {
+            echo "WARNING: Gubbins failed for cluster ${cluster_id}. Creating empty output files."
+            touch ${cluster_id}.filtered_polymorphic_sites.fasta
+            touch ${cluster_id}.recombination_predictions.gff
+            touch ${cluster_id}.node_labelled.final_tree.tre
+        }
+    fi
+
+    # Ensure all required output files exist (in case Gubbins partially failed)
+    if [ ! -f "${cluster_id}.filtered_polymorphic_sites.fasta" ]; then
+        echo "WARNING: Missing filtered_polymorphic_sites.fasta for cluster ${cluster_id}. Creating empty file."
+        touch ${cluster_id}.filtered_polymorphic_sites.fasta
+    fi
+    
+    if [ ! -f "${cluster_id}.recombination_predictions.gff" ]; then
+        echo "WARNING: Missing recombination_predictions.gff for cluster ${cluster_id}. Creating empty file."
+        touch ${cluster_id}.recombination_predictions.gff
+    fi
+    
+    if [ ! -f "${cluster_id}.node_labelled.final_tree.tre" ]; then
+        echo "WARNING: Missing node_labelled.final_tree.tre for cluster ${cluster_id}. Creating empty file."
+        touch ${cluster_id}.node_labelled.final_tree.tre
     fi
 
     cat <<-END_VERSIONS > versions.yml

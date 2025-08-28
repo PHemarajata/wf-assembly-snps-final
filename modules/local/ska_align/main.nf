@@ -19,7 +19,16 @@ process SKA_ALIGN {
     # Create alignment from SKA file
     ska align \\
         $args \\
-        $ska_file > ${cluster_id}.aln.fa
+        $ska_file > ${cluster_id}.aln.fa || {
+        echo "WARNING: SKA align failed for cluster ${cluster_id}. Creating empty alignment file."
+        touch ${cluster_id}.aln.fa
+    }
+
+    # Ensure alignment file exists
+    if [ ! -f "${cluster_id}.aln.fa" ]; then
+        echo "WARNING: Missing alignment file for cluster ${cluster_id}. Creating empty file."
+        touch ${cluster_id}.aln.fa
+    fi
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

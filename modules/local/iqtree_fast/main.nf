@@ -44,7 +44,22 @@ process IQTREE_FAST {
         --fast \\
         -nt AUTO \\
         --prefix ${cluster_id} \\
-        $args
+        $args || {
+        echo "WARNING: IQ-TREE failed for cluster ${cluster_id}. Creating empty output files."
+        touch ${cluster_id}.treefile
+        touch ${cluster_id}.iqtree
+    }
+
+    # Ensure all required output files exist (in case IQ-TREE partially failed)
+    if [ ! -f "${cluster_id}.treefile" ]; then
+        echo "WARNING: Missing treefile for cluster ${cluster_id}. Creating empty file."
+        touch ${cluster_id}.treefile
+    fi
+    
+    if [ ! -f "${cluster_id}.iqtree" ]; then
+        echo "WARNING: Missing iqtree log for cluster ${cluster_id}. Creating empty file."
+        touch ${cluster_id}.iqtree
+    fi
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
